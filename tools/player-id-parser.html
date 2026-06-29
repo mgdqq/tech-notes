@@ -284,45 +284,6 @@
       line-height: 1.2;
     }
 
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-      gap: 12px;
-      margin-top: 18px;
-    }
-
-    .summary {
-      min-width: 0;
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.94);
-    }
-
-    .summary span {
-      display: block;
-      margin-bottom: 6px;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 760;
-    }
-
-    .summary strong {
-      display: block;
-      font-size: 20px;
-      line-height: 1.2;
-      overflow-wrap: anywhere;
-    }
-
-    .summary time {
-      display: block;
-      margin-top: 6px;
-      color: #344054;
-      font-size: 14px;
-      line-height: 1.45;
-      overflow-wrap: anywhere;
-    }
-
     .formula {
       margin-top: 18px;
       padding: 16px;
@@ -368,14 +329,14 @@
         <article class="field timestamp">
           <div class="field-head">Timestamp <span>29 bits</span></div>
           <div class="field-binary" id="timestampBinary"></div>
-          <div class="field-value">timestampSeconds <strong id="timestampValue"></strong></div>
+          <div class="field-value">secondsFromEpoch <strong id="timestampValue"></strong></div>
+          <div class="field-value">bornDate <strong id="dateValue"></strong></div>
         </article>
 
         <article class="field generator">
           <div class="generator-main">
             <div class="field-head">GeneratorId <span>20 bits</span></div>
             <div class="field-binary" id="generatorBinary"></div>
-            <div class="field-value">generatorId <strong id="generatorValue"></strong></div>
           </div>
           <div class="generator-split">
             <div class="subfield">
@@ -399,14 +360,6 @@
       </div>
     </section>
 
-    <section class="summary-grid" aria-label="解析结果汇总">
-      <div class="summary"><span>timestampSeconds</span><strong id="summaryTimestamp"></strong><time id="summaryTime"></time></div>
-      <div class="summary"><span>generatorId</span><strong id="summaryGenerator"></strong></div>
-      <div class="summary"><span>loginNodeId</span><strong id="summaryLoginNode"></strong></div>
-      <div class="summary"><span>bornChannelId</span><strong id="summaryBornChannel"></strong></div>
-      <div class="summary"><span>sequence</span><strong id="summarySequence"></strong></div>
-    </section>
-
     <section class="formula" aria-label="解析公式">
       <div><code>sequence = playerId &amp; ((1 &lt;&lt; 14) - 1)</code></div>
       <div><code>generatorId = (playerId &gt;&gt; 14) &amp; ((1 &lt;&lt; 20) - 1)</code></div>
@@ -427,10 +380,9 @@
     const bornChannelMask = (1n << bornChannelBits) - 1n;
 
     const ids = [
-      "timestampBinary", "timestampValue", "loginNodeBinary", "loginNodeValue",
-      "bornChannelBinary", "bornChannelValue", "generatorBinary", "generatorValue",
-      "sequenceBinary", "sequenceValue", "summaryTimestamp", "summaryTime",
-      "summaryGenerator", "summaryLoginNode", "summaryBornChannel", "summarySequence",
+      "timestampBinary", "timestampValue", "dateValue", "loginNodeBinary", "loginNodeValue",
+      "bornChannelBinary", "bornChannelValue", "generatorBinary",
+      "sequenceBinary", "sequenceValue",
       "playerId", "parse", "error"
     ];
 
@@ -470,17 +422,10 @@
       el.sequenceBinary.textContent = bits(sequence, 14);
 
       el.timestampValue.textContent = timestampSeconds.toString();
-      el.generatorValue.textContent = generatorId.toString();
+      el.dateValue.textContent = formatLocal(timestampSeconds);
       el.loginNodeValue.textContent = loginNodeId.toString();
       el.bornChannelValue.textContent = bornChannelId.toString();
       el.sequenceValue.textContent = sequence.toString();
-
-      el.summaryTimestamp.textContent = timestampSeconds.toString();
-      el.summaryTime.textContent = formatLocal(timestampSeconds);
-      el.summaryGenerator.textContent = generatorId.toString();
-      el.summaryLoginNode.textContent = loginNodeId.toString();
-      el.summaryBornChannel.textContent = bornChannelId.toString();
-      el.summarySequence.textContent = sequence.toString();
     }
 
     el.parse.addEventListener("click", parsePlayerId);
