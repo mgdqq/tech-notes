@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlayerId Parser</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d8dee9;
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.1);
+      --green: #0f9f6e;
+      --orange: #f59e0b;
+      --shadow: 0 14px 35px rgba(23, 32, 51, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 32%),
+        linear-gradient(315deg, rgba(15, 159, 110, 0.08), transparent 34%),
+        var(--bg);
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 42px;
+    }
+
+    header {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .back {
+      width: fit-content;
+      color: #344054;
+      font-size: 14px;
+      text-decoration: none;
+    }
+
+    .back:hover { text-decoration: underline; }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 48px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: var(--shadow);
+    }
+
+    .input-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    input {
+      width: 100%;
+      min-height: 44px;
+      padding: 0 12px;
+      border: 1px solid #cfd7e6;
+      border-radius: 8px;
+      background: #fbfcff;
+      color: var(--ink);
+      font: 16px Consolas, "SFMono-Regular", monospace;
+    }
+
+    button {
+      min-height: 44px;
+      padding: 0 16px;
+      border: 1px solid #1d4ed8;
+      border-radius: 8px;
+      background: #1d4ed8;
+      color: white;
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    input:focus-visible,
+    button:focus-visible {
+      outline: 3px solid var(--accent-soft);
+      outline-offset: 2px;
+    }
+
+    .error {
+      grid-column: 1 / -1;
+      display: none;
+      margin: -2px 0 0;
+      color: #b42318;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .error.visible { display: block; }
+
+    .layout-panel {
+      padding: 18px;
+      overflow-x: auto;
+    }
+
+    .section-title {
+      margin: 0 0 14px;
+      color: #344054;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .bit-layout {
+      min-width: 920px;
+      display: grid;
+      grid-template-columns: 29fr 20fr 14fr;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fbfcff;
+    }
+
+    .field {
+      min-width: 0;
+      border-right: 1px solid var(--line);
+      background: white;
+    }
+
+    .field:last-child { border-right: 0; }
+
+    .field-head,
+    .field-binary,
+    .field-value {
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .field-value { border-bottom: 0; }
+
+    .field-head {
+      min-height: 72px;
+      display: grid;
+      align-content: center;
+      gap: 4px;
+      color: white;
+      font-weight: 800;
+    }
+
+    .timestamp .field-head { background: var(--accent); }
+    .generator .field-head { background: var(--green); }
+    .sequence .field-head { background: var(--orange); }
+
+    .field-head span {
+      display: block;
+      font-size: 12px;
+      opacity: 0.86;
+    }
+
+    .field-binary {
+      min-height: 58px;
+      background: #f8fafc;
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 13px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .field-value {
+      min-height: 56px;
+      color: #344054;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .field-value strong {
+      display: block;
+      color: var(--ink);
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .generator-main {
+      display: grid;
+      grid-template-rows: auto auto auto;
+    }
+
+    .generator-main .field-value {
+      border-bottom: 0;
+    }
+
+    .generator-split {
+      display: grid;
+      grid-template-columns: 6fr 14fr;
+      border-top: 1px solid var(--line);
+    }
+
+    .subfield {
+      min-width: 0;
+      border-right: 1px solid var(--line);
+    }
+
+    .subfield:last-child { border-right: 0; }
+
+    .sub-head,
+    .sub-binary,
+    .sub-value {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .sub-value { border-bottom: 0; }
+
+    .sub-head {
+      min-height: 52px;
+      display: grid;
+      align-content: center;
+      gap: 2px;
+      background: #e9f8f2;
+      color: #0b6b4b;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .sub-head span {
+      font-size: 11px;
+      font-weight: 750;
+      opacity: 0.78;
+    }
+
+    .sub-binary {
+      min-height: 52px;
+      background: #f8fafc;
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 13px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .sub-value {
+      min-height: 50px;
+      color: #344054;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .sub-value strong {
+      display: block;
+      color: var(--ink);
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .summary {
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    .summary span {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .summary strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .summary time {
+      display: block;
+      margin-top: 6px;
+      color: #344054;
+      font-size: 14px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .formula {
+      margin-top: 18px;
+      padding: 16px;
+      border-left: 4px solid #334155;
+      background: rgba(255, 255, 255, 0.82);
+      color: #39445a;
+      line-height: 1.7;
+    }
+
+    .formula code { font-family: Consolas, "SFMono-Regular", monospace; }
+
+    @media (max-width: 720px) {
+      main {
+        width: min(100% - 20px, 1120px);
+        padding-top: 22px;
+      }
+
+      .input-panel { grid-template-columns: 1fr; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <a class="back" href="../">返回 Tech Notes</a>
+      <h1>PlayerId Parser</h1>
+      <p class="subtitle">使用 BigInt 解析 PlayerId，展示 timestamp、generatorId、sequence 以及 generatorId 内部的 loginNodeId 与 bornChannelId。</p>
+    </header>
+
+    <section class="panel input-panel" aria-label="PlayerId 输入">
+      <div>
+        <label for="playerId">PlayerId</label>
+        <input id="playerId" inputmode="numeric" autocomplete="off" value="805037657682509824">
+      </div>
+      <button id="parse" type="button">Parse PlayerId</button>
+      <p class="error" id="error"></p>
+    </section>
+
+    <section class="panel layout-panel" aria-labelledby="layout-title">
+      <h2 class="section-title" id="layout-title">Bit Layout</h2>
+      <div class="bit-layout" aria-label="PlayerId 位布局">
+        <article class="field timestamp">
+          <div class="field-head">Timestamp <span>29 bits</span></div>
+          <div class="field-binary" id="timestampBinary"></div>
+          <div class="field-value">timestampSeconds <strong id="timestampValue"></strong></div>
+        </article>
+
+        <article class="field generator">
+          <div class="generator-main">
+            <div class="field-head">GeneratorId <span>20 bits</span></div>
+            <div class="field-binary" id="generatorBinary"></div>
+            <div class="field-value">generatorId <strong id="generatorValue"></strong></div>
+          </div>
+          <div class="generator-split">
+            <div class="subfield">
+              <div class="sub-head">LoginNodeId <span>high 6 bits</span></div>
+              <div class="sub-binary" id="loginNodeBinary"></div>
+              <div class="sub-value">loginNodeId <strong id="loginNodeValue"></strong></div>
+            </div>
+            <div class="subfield">
+              <div class="sub-head">BornChannelId <span>low 14 bits</span></div>
+              <div class="sub-binary" id="bornChannelBinary"></div>
+              <div class="sub-value">bornChannelId <strong id="bornChannelValue"></strong></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="field sequence">
+          <div class="field-head">Sequence <span>14 bits</span></div>
+          <div class="field-binary" id="sequenceBinary"></div>
+          <div class="field-value">sequence <strong id="sequenceValue"></strong></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="summary-grid" aria-label="解析结果汇总">
+      <div class="summary"><span>timestampSeconds</span><strong id="summaryTimestamp"></strong><time id="summaryTime"></time></div>
+      <div class="summary"><span>generatorId</span><strong id="summaryGenerator"></strong></div>
+      <div class="summary"><span>loginNodeId</span><strong id="summaryLoginNode"></strong></div>
+      <div class="summary"><span>bornChannelId</span><strong id="summaryBornChannel"></strong></div>
+      <div class="summary"><span>sequence</span><strong id="summarySequence"></strong></div>
+    </section>
+
+    <section class="formula" aria-label="解析公式">
+      <div><code>sequence = playerId &amp; ((1 &lt;&lt; 14) - 1)</code></div>
+      <div><code>generatorId = (playerId &gt;&gt; 14) &amp; ((1 &lt;&lt; 20) - 1)</code></div>
+      <div><code>timestampSeconds = playerId &gt;&gt; (14 + 20)</code></div>
+      <div><code>loginNodeId = generatorId &gt;&gt; 14</code></div>
+      <div><code>bornChannelId = generatorId &amp; ((1 &lt;&lt; 14) - 1)</code></div>
+      <div>Epoch: <code>2025-01-01 00:00:00 UTC</code></div>
+    </section>
+  </main>
+
+  <script>
+    const epochMs = Date.UTC(2025, 0, 1, 0, 0, 0);
+    const sequenceBits = 14n;
+    const generatorBits = 20n;
+    const bornChannelBits = 14n;
+    const sequenceMask = (1n << sequenceBits) - 1n;
+    const generatorMask = (1n << generatorBits) - 1n;
+    const bornChannelMask = (1n << bornChannelBits) - 1n;
+
+    const ids = [
+      "timestampBinary", "timestampValue", "loginNodeBinary", "loginNodeValue",
+      "bornChannelBinary", "bornChannelValue", "generatorBinary", "generatorValue",
+      "sequenceBinary", "sequenceValue", "summaryTimestamp", "summaryTime",
+      "summaryGenerator", "summaryLoginNode", "summaryBornChannel", "summarySequence",
+      "playerId", "parse", "error"
+    ];
+
+    const el = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
+
+    function bits(value, width) {
+      return value.toString(2).padStart(width, "0");
+    }
+
+    function formatLocal(timestampSeconds) {
+      const ms = epochMs + Number(timestampSeconds) * 1000;
+      return new Date(ms).toLocaleString();
+    }
+
+    function parsePlayerId() {
+      const raw = el.playerId.value.trim();
+      el.error.classList.remove("visible");
+      el.error.textContent = "";
+
+      if (!/^\d+$/.test(raw)) {
+        el.error.textContent = "请输入非负十进制整数。";
+        el.error.classList.add("visible");
+        return;
+      }
+
+      const playerId = BigInt(raw);
+      const sequence = playerId & sequenceMask;
+      const generatorId = (playerId >> sequenceBits) & generatorMask;
+      const timestampSeconds = playerId >> (sequenceBits + generatorBits);
+      const loginNodeId = generatorId >> bornChannelBits;
+      const bornChannelId = generatorId & bornChannelMask;
+
+      el.timestampBinary.textContent = bits(timestampSeconds, 29);
+      el.generatorBinary.textContent = bits(generatorId, 20);
+      el.loginNodeBinary.textContent = bits(loginNodeId, 6);
+      el.bornChannelBinary.textContent = bits(bornChannelId, 14);
+      el.sequenceBinary.textContent = bits(sequence, 14);
+
+      el.timestampValue.textContent = timestampSeconds.toString();
+      el.generatorValue.textContent = generatorId.toString();
+      el.loginNodeValue.textContent = loginNodeId.toString();
+      el.bornChannelValue.textContent = bornChannelId.toString();
+      el.sequenceValue.textContent = sequence.toString();
+
+      el.summaryTimestamp.textContent = timestampSeconds.toString();
+      el.summaryTime.textContent = formatLocal(timestampSeconds);
+      el.summaryGenerator.textContent = generatorId.toString();
+      el.summaryLoginNode.textContent = loginNodeId.toString();
+      el.summaryBornChannel.textContent = bornChannelId.toString();
+      el.summarySequence.textContent = sequence.toString();
+    }
+
+    el.parse.addEventListener("click", parsePlayerId);
+    el.playerId.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        parsePlayerId();
+      }
+    });
+
+    parsePlayerId();
+  </script>
+</body>
+</html>

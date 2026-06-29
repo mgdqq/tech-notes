@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
@@ -134,7 +134,7 @@
   <main>
     <header>
       <h1>Tech Notes</h1>
-      <p class="desc">这里收集我学过的技术知识、动态演示和复习材料。每个卡片对应一个独立主题，之后新增内容时只需要加一个目录和一个入口。</p>
+      <p class="desc">这里记录我对技术问题的学习、实验和整理。每个卡片对应一个独立主题，内容会尽量以文章、图解、交互演示或小型实验的形式呈现。</p>
     </header>
 
     <section aria-labelledby="network-title">
@@ -151,7 +151,20 @@
         </a>
       </div>
     </section>
-
+    <section aria-labelledby="tools-title">
+      <h2 class="section-title" id="tools-title">工具</h2>
+      <div class="grid">
+        <a class="card" href="./tools/player-id-parser.html">
+          <h2>PlayerId Parser</h2>
+          <p>使用 BigInt 解析 PlayerId 的 timestamp、generatorId、loginNodeId、bornChannelId 和 sequence。</p>
+          <div class="tag-row">
+            <span class="tag">PlayerId</span>
+            <span class="tag">BigInt</span>
+            <span class="tag">位运算</span>
+          </div>
+        </a>
+      </div>
+    </section>
     <footer>
       新增主题时，在仓库根目录创建一个子目录，例如 <code>redis/index.html</code>，然后在这个首页增加一个新的卡片链接。
     </footer>
